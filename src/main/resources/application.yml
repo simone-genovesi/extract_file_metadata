@@ -1,0 +1,22 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: ExtractFileData
+
+  data:
+    mongodb:
+      host: localhost # Indirizzo del server MongoDB
+      port: 27017     # Porta del server MongoDB
+      database: extractfiledata  # Nome del database
+      username: root            # Nome utente
+      password: root            # Password
+      authentication-database: admin # Database di autenticazione (importante)
+
+spring-doc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
