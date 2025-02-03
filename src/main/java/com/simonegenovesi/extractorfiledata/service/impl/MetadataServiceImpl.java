@@ -20,8 +20,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 import java.util.stream.Stream;
 
 @Service
@@ -62,8 +64,7 @@ public class MetadataServiceImpl implements MetadataService {
 
     private List<File> getAllFilesFromFolders(String folderPath) throws IOException {
         try (Stream<Path> stream = Files.walk(Path.of(pathBase + folderPath))) {
-            return stream.parallel() // Parallelizza la scansione della cartella
-                    .filter(Files::isRegularFile)
+            return stream.filter(Files::isRegularFile)
                     .map(Path::toFile)
                     .toList();
         }
@@ -71,62 +72,100 @@ public class MetadataServiceImpl implements MetadataService {
 
     private String getMimeType(File file) {
         try {
-            var mimeType = Files.probeContentType(file.toPath());
-            return (mimeType != null && !mimeType.equals("application/octet-stream")) ? mimeType : tika.detect(file);
+            String mimeType = Files.probeContentType(file.toPath());
+
+            // Se il MIME è null o generico, usa Tika per un'analisi più accurata
+            if (mimeType == null || mimeType.equals("application/octet-stream")) {
+                mimeType = tika.detect(file);
+            }
+
+            // Normalizza il MIME type rimuovendo eventuali charset extra (tranne per hOCR)
+            if (mimeType.contains(";") && !file.getName().endsWith(".hocr")) {
+                mimeType = mimeType.split(";")[0]; // Rimuove il charset se presente
+            }
+
+            // Correzioni per formati specifici
+            if (mimeType.equals("text/xml")) {
+                mimeType = "application/xml";
+            }
+
+            if (file.getName().endsWith(".j")) {
+                mimeType = "image/jpeg";
+            }
+
+            if (file.getName().endsWith(".hocr")) {
+                mimeType = "application/xhtml+xml; charset=UTF-8";
+            }
+
+            return mimeType;
         } catch (IOException e) {
             log.error("Errore durante la lettura del file {}: {}", file.getAbsolutePath(), e.getMessage());
-            return "unknown";
+            return "sconosciuto";
         }
     }
 
     private List<String> estraiCodici(String percorso) {
-        var path = Paths.get(percorso);
+        Path path = Paths.get(percorso);
+        int depth = path.getNameCount();
+
         return List.of(
-                path.getName(0).toString(),
-                path.getName(1).toString(),
-                path.getName(2).toString()
+                depth > 0 ? path.getName(0).toString() : "N/A",
+                depth > 1 ? path.getName(1).toString() : "N/A",
+                depth > 2 ? path.getName(2).toString() : "N/A"
         );
     }
 
     private Pair<List<MetadatiRisorse>, Metriche> processaFile(List<File> allFiles, List<String> codici) {
-        var metadatiList = allFiles.parallelStream()
-                .map(file -> {
-                    var formatoFile = getMimeType(file);
-                    return MetadatiRisorse.builder()
-                            .urlOggetto(file.getAbsolutePath())
-                            .nomeOggetto(file.getName())
-                            .dimensioneFile(file.length())
-                            .formatoFile(formatoFile)
-                            .codiceCantiere(codici.get(0))
-                            .codiceLotto(codici.get(1))
-                            .codicePacchetto(codici.get(2))
-                            .build();
-                })
-                .toList();
+        Map<String, Metriche.MetricheSummary> metricheMap = new HashMap<>();
+        List<MetadatiRisorse> metadatiList = new ArrayList<>();
+        long dimTotale = 0;
 
-        var dettagliRisorse = allFiles.parallelStream()
-                .collect(Collectors.groupingBy(this::getMimeType, Collectors.summingLong(File::length)))
-                .entrySet().stream()
-                .map(entry -> Metriche.DettaglioRisorsa.builder()
-                        .formatoFile(entry.getKey())
-                        .metricheSummary(Metriche.MetricheSummary.builder()
-                                .numRisorse((int) allFiles.stream()
-                                        .filter(f -> getMimeType(f).equals(entry.getKey())).count())
-                                .dimTotale(entry.getValue())
-                                .build())
-                        .build())
-                .toList();
+        for (File file : allFiles) {
+            String formatoFile = getMimeType(file);
+            long fileSize = file.length();
 
-        long dimTotale = allFiles.stream().mapToLong(File::length).sum();
+            String nomeOggetto = file.getName();
 
-        var metriche = Metriche.builder()
+            // Se il file è image/jpeg e ha estensione .j, rinominalo in .jpg
+            if (formatoFile.equals("image/jpeg") && nomeOggetto.endsWith(".j")) {
+                nomeOggetto = nomeOggetto.substring(0, nomeOggetto.length() - 2) + ".jpg";
+            }
+
+            MetadatiRisorse metadato = MetadatiRisorse.builder()
+                    .urlOggetto(file.getAbsolutePath())
+                    .nomeOggetto(nomeOggetto)
+                    .dimensioneFile(fileSize)
+                    .formatoFile(formatoFile)
+                    .codiceCantiere(codici.get(0))
+                    .codiceLotto(codici.get(1))
+                    .codicePacchetto(codici.get(2))
+                    .build();
+
+            metadatiList.add(metadato);
+
+            // Aggiorna metriche
+            if (!metricheMap.containsKey(formatoFile)) {
+                metricheMap.put(formatoFile, new Metriche.MetricheSummary(0, 0L));
+            }
+            Metriche.MetricheSummary metriche = metricheMap.get(formatoFile);
+            metriche.setDimTotale(fileSize);
+
+            dimTotale += fileSize;
+        }
+
+        List<Metriche.DettaglioRisorsa> dettagliRisorse = new ArrayList<>();
+        for (Map.Entry<String, Metriche.MetricheSummary> entry : metricheMap.entrySet()) {
+            dettagliRisorse.add(Metriche.DettaglioRisorsa.builder()
+                    .formatoFile(entry.getKey())
+                    .metricheSummary(entry.getValue())
+                    .build());
+        }
+
+        Metriche metriche = Metriche.builder()
                 .codiceCantiere(codici.get(0))
                 .codiceLotto(codici.get(1))
                 .codicePacchetto(codici.get(2))
-                .metricheSummary(Metriche.MetricheSummary.builder()
-                        .numRisorse(allFiles.size())
-                        .dimTotale(dimTotale)
-                        .build())
+                .metricheSummary(new Metriche.MetricheSummary(allFiles.size(), dimTotale))
                 .dettagliRisorse(dettagliRisorse)
                 .build();
 

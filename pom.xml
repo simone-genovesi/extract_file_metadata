@@ -30,6 +30,7 @@
 		<java.version>17</java.version>
 		<spring-ai.version>1.0.0-M5</spring-ai.version>
 		<springdoc>2.8.4</springdoc>
+		<lombok>1.18.24</lombok>
 		<modelmapper>3.2.2</modelmapper>
 	</properties>
 	<dependencies>
@@ -53,7 +54,7 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>1.18.24</version>
+			<version>${lombok}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -99,7 +100,7 @@
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
-							<version>1.18.24</version>
+							<version>${lombok}</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>

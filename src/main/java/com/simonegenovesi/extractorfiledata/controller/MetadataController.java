@@ -15,7 +15,9 @@ public class MetadataController {
     private final MetadataService metadataService;
 
     @PostMapping
-    public ResponseEntity<Void> extractMetadata(@RequestParam String folderPath) {
+    public ResponseEntity<Void> extractMetadata(
+            @RequestParam(defaultValue = "\\CA01CN01\\LDIG002\\PK0000004\\contenuto") String folderPath
+    ) {
         metadataService.extractMetadata(folderPath);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
