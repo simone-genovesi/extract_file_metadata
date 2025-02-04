@@ -13,7 +13,7 @@ import java.util.List;
 @Data @Builder
 @AllArgsConstructor @NoArgsConstructor
 @Document(collection = "metriche")
-public class Metriche {
+public class Metrica {
 
     @Id
     private String id;

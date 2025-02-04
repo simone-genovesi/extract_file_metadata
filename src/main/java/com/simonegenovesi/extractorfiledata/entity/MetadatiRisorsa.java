@@ -10,8 +10,8 @@ import org.springframework.data.mongodb.core.mapping.Field;
 
 @Data @Builder
 @AllArgsConstructor @NoArgsConstructor
-@Document(collection = "metadati_risorse")
-public class MetadatiRisorse {
+@Document(collection = "risorse")
+public class MetadatiRisorsa {
 
     @Id
     private String id;

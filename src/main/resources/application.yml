@@ -7,14 +7,25 @@ spring:
   application:
     name: ExtractFileData
 
+  logging:
+    level:
+      org.springframework.data.mongodb: debug
+
   data:
     mongodb:
-      host: localhost # Indirizzo del server MongoDB
-      port: 27017     # Porta del server MongoDB
-      database: extractfiledata  # Nome del database
-      username: root            # Nome utente
-      password: root            # Password
-      authentication-database: admin # Database di autenticazione (importante)
+#      host: localhost # Indirizzo del server MongoDB
+#      port: 27017     # Porta del server MongoDB
+#      database: extractfiledata  # Nome del database
+#      username: root            # Nome utente
+#      password: root            # Password
+#      authentication-database: admin # Database di autenticazione (importante)
+      host: cluster0.vh9o2.mongodb.net
+      port: 27017
+      uri: mongodb+srv://user:passworduser@cluster0.vh9o2.mongodb.net/
+      username: user
+      password: passworduser
+      authentication-database: admin
+      database: eserciziometadati
 
 spring-doc:
   swagger-ui:
