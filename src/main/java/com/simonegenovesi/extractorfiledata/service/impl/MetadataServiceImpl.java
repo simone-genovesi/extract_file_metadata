@@ -2,13 +2,14 @@ package com.simonegenovesi.extractorfiledata.service.impl;
 
 import com.simonegenovesi.extractorfiledata.entity.MetadatiRisorse;
 import com.simonegenovesi.extractorfiledata.entity.Metriche;
+import com.simonegenovesi.extractorfiledata.payload.response.ProcessedFiles;
 import com.simonegenovesi.extractorfiledata.repository.MetadatiRisorseRepository;
 import com.simonegenovesi.extractorfiledata.repository.MetricheRepository;
 import com.simonegenovesi.extractorfiledata.service.MetadataService;
+import com.simonegenovesi.extractorfiledata.util.MimeTypeEnum;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,13 +19,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -40,33 +38,46 @@ public class MetadataServiceImpl implements MetadataService {
 
     @Override
     public void extractMetadata(String folderPath) {
-        var start = Instant.now();
-        List<File> allFiles;
-        try {
-            allFiles = getAllFilesFromFolders(folderPath);
-        } catch (IOException e) {
-            throw new RuntimeException("Errore nel recupero dei file", e);
-        }
+        var start = System.nanoTime();
+        List<File> allFiles = getAllFilesFromFolders(folderPath);
 
         var codici = estraiCodici(folderPath);
         var fileProcessati = processaFile(allFiles, codici);
-        var metadati = fileProcessati.getLeft();
-        var metriche = fileProcessati.getRight();
+        var metadati = fileProcessati.metadati();
+        var metriche = fileProcessati.metriche();
 
         metadatiRisorseRepository.saveAll(metadati);
         metricheRepository.save(metriche);
-        var end = Instant.now();
-        var tempoTotaleSalvataggio = Duration.between(start, end).toMillis();
+        var end = System.nanoTime();
         if (!allFiles.isEmpty()) {
-            log.info("Tempo medio di salvataggio: {} ms", (double) tempoTotaleSalvataggio / allFiles.size());
+            log.info("Tempo medio di salvataggio: {} ms", ((double) (end - start) / 1_000_000) / allFiles.size());
         }
     }
 
-    private List<File> getAllFilesFromFolders(String folderPath) throws IOException {
-        try (Stream<Path> stream = Files.walk(Path.of(pathBase + folderPath))) {
-            return stream.filter(Files::isRegularFile)
-                    .map(Path::toFile)
-                    .toList();
+    private List<File> getAllFilesFromFolders(String folderPath) {
+        var start = System.nanoTime();
+        List<File> fileList = new ArrayList<>();
+        File rootDir = new File(pathBase, folderPath);
+
+        if (rootDir.exists() && rootDir.isDirectory()) {
+            scanDirectory(rootDir, fileList);
+        }
+
+        var end = System.nanoTime();
+        log.info("Tempo di recupero dei file: {} ms", (end - start) / 1_000_000);
+        return fileList;
+    }
+
+    private void scanDirectory(File dir, List<File> fileList) {
+        File[] files = dir.listFiles();
+        if (files == null) return; // Evita NullPointerException
+
+        for (File file : files) {
+            if (file.isFile()) {
+                fileList.add(file);
+            } else if (file.isDirectory()) {
+                scanDirectory(file, fileList); // Ricorsione per sottodirectory
+            }
         }
     }
 
@@ -80,34 +91,39 @@ public class MetadataServiceImpl implements MetadataService {
             }
 
             // Normalizza il MIME type rimuovendo eventuali charset extra (tranne per hOCR)
-            if (mimeType.contains(";") && !file.getName().endsWith(".hocr")) {
-                mimeType = mimeType.split(";")[0]; // Rimuove il charset se presente
+            if (mimeType.endsWith(";") &&!file.getName().endsWith(".hocr")) {
+                mimeType = mimeType.substring(0, mimeType.length() - 1);
             }
 
-            // Correzioni per formati specifici
+            // Verifica se il MIME type è già valido
+            if (MimeTypeEnum.fromString(mimeType)!= MimeTypeEnum.UNKNOWN) {
+                return mimeType; // Il MIME type è già valido
+            }
+
+            // Corregge i formati speciali solo se necessario
             if (mimeType.equals("text/xml")) {
-                mimeType = "application/xml";
+                return MimeTypeEnum.APPLICATION_XML.getMimeType();
+            } else if (file.getName().endsWith(".j")) {
+                return MimeTypeEnum.IMAGE_JPEG.getMimeType();
+            } else if (file.getName().endsWith(".hocr")) {
+                return MimeTypeEnum.APPLICATION_XHTML.getMimeType();
+            } else {
+                return MimeTypeEnum.UNKNOWN.getMimeType(); // MIME type non valido
             }
 
-            if (file.getName().endsWith(".j")) {
-                mimeType = "image/jpeg";
-            }
-
-            if (file.getName().endsWith(".hocr")) {
-                mimeType = "application/xhtml+xml; charset=UTF-8";
-            }
-
-            return mimeType;
         } catch (IOException e) {
             log.error("Errore durante la lettura del file {}: {}", file.getAbsolutePath(), e.getMessage());
-            return "sconosciuto";
+            return MimeTypeEnum.UNKNOWN.getMimeType();
         }
     }
 
     private List<String> estraiCodici(String percorso) {
+        var start = System.nanoTime();
         Path path = Paths.get(percorso);
         int depth = path.getNameCount();
 
+        var end = System.nanoTime();
+        log.info("Tempo di estrazione dei codici cartelle: {} ms", (end - start) / 1_000_000);
         return List.of(
                 depth > 0 ? path.getName(0).toString() : "N/A",
                 depth > 1 ? path.getName(1).toString() : "N/A",
@@ -115,20 +131,23 @@ public class MetadataServiceImpl implements MetadataService {
         );
     }
 
-    private Pair<List<MetadatiRisorse>, Metriche> processaFile(List<File> allFiles, List<String> codici) {
+    private ProcessedFiles processaFile(List<File> allFiles, List<String> codici) {
+        var start = System.nanoTime();
         Map<String, Metriche.MetricheSummary> metricheMap = new HashMap<>();
         List<MetadatiRisorse> metadatiList = new ArrayList<>();
         long dimTotale = 0;
 
-        for (File file : allFiles) {
+        for (File file: allFiles) {
             String formatoFile = getMimeType(file);
-            long fileSize = file.length();
+            MimeTypeEnum mimeEnum = MimeTypeEnum.fromString(formatoFile);
+            String formatoAbbreviato = mimeEnum.getAbbreviation(); // Usa abbreviazione per metriche
 
+            long fileSize = file.length();
             String nomeOggetto = file.getName();
 
-            // Se il file è image/jpeg e ha estensione .j, rinominalo in .jpg
-            if (formatoFile.equals("image/jpeg") && nomeOggetto.endsWith(".j")) {
-                nomeOggetto = nomeOggetto.substring(0, nomeOggetto.length() - 2) + ".jpg";
+            // Se il file è image/jpeg e ha estensione.j, rinominalo in.jpg
+            if (mimeEnum == MimeTypeEnum.IMAGE_JPEG && nomeOggetto.endsWith(".j")) {
+                nomeOggetto = nomeOggetto.replace(".j", ".jpg");
             }
 
             MetadatiRisorse metadato = MetadatiRisorse.builder()
@@ -144,19 +163,19 @@ public class MetadataServiceImpl implements MetadataService {
             metadatiList.add(metadato);
 
             // Aggiorna metriche
-            if (!metricheMap.containsKey(formatoFile)) {
-                metricheMap.put(formatoFile, new Metriche.MetricheSummary(0, 0L));
-            }
-            Metriche.MetricheSummary metriche = metricheMap.get(formatoFile);
-            metriche.setDimTotale(fileSize);
+            metricheMap.putIfAbsent(formatoAbbreviato, new Metriche.MetricheSummary(0, 0L));
+            Metriche.MetricheSummary metriche = metricheMap.get(formatoAbbreviato);
+
+            metriche.setNumRisorse(metriche.getNumRisorse() + 1);
+            metriche.setDimTotale(metriche.getDimTotale() + fileSize);
 
             dimTotale += fileSize;
         }
 
         List<Metriche.DettaglioRisorsa> dettagliRisorse = new ArrayList<>();
-        for (Map.Entry<String, Metriche.MetricheSummary> entry : metricheMap.entrySet()) {
+        for (Map.Entry<String, Metriche.MetricheSummary> entry: metricheMap.entrySet()) {
             dettagliRisorse.add(Metriche.DettaglioRisorsa.builder()
-                    .formatoFile(entry.getKey())
+                    .formatoFile(entry.getKey()) // Ora usa l'abbreviazione (es. "JPEG", "HOCR")
                     .metricheSummary(entry.getValue())
                     .build());
         }
@@ -169,6 +188,9 @@ public class MetadataServiceImpl implements MetadataService {
                 .dettagliRisorse(dettagliRisorse)
                 .build();
 
-        return new ImmutablePair<>(metadatiList, metriche);
+        var end = System.nanoTime();
+        log.info("Tempo di elaborazione dei file: {} ms", (end - start) / 1_000_000);
+        return new ProcessedFiles(metadatiList, metriche);
     }
+
 }
