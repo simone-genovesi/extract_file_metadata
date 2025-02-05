@@ -1,4 +1,4 @@
-package com.simonegenovesi.extractorfiledata.util;
+package com.simonegenovesi.extractorfiledata.util.dto;
 
 import com.simonegenovesi.extractorfiledata.entity.MetadatiRisorsa;
 import com.simonegenovesi.extractorfiledata.entity.Metrica;

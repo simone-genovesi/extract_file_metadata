@@ -15,13 +15,13 @@ public class MetadataController {
     private final MetadataService metadataService;
 
     //http://localhost:8081/api/swagger-ui/index.html#/metadata-controller/extractMetadata
-    // "\CA01CN01\LDIG002\PK0000004\contenuto"
-    // "\CA01CN01\LDIG002\PK0000028\contenuto"
+    // "\\CA01CN01\\LDIG002\\PK0000004\\contenuto"
+    // "\\CA01CN01\\LDIG002\\PK0000028\\contenuto"
     @PostMapping("/")
     public ResponseEntity<Void> extractMetadata(
             @RequestBody MetadataRequest request
     ) {
-        metadataService.extractMetadata(request);
+        metadataService.estraiMetadata(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .build();

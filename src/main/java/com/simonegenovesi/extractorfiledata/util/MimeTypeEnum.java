@@ -10,7 +10,8 @@ public enum MimeTypeEnum {
     TEXT_CSS("text/css", "CSS"),
     TEXT_XML("text/xml", "XML"),
     APPLICATION_XML("application/xml", "XML"),
-    APPLICATION_XHTML("application/xhtml+xml; charset=UTF-8", "HOCR"),
+    APPLICATION_XHTML("application/xhtml+xml; charset=UTF-8", "XHTML"),
+    APPLICATION_HOCR("application/xhtml+xml; charset=UTF-8", "HOCR"),
 
     // Immagini
     IMAGE_JPEG("image/jpeg", "JPEG"),
