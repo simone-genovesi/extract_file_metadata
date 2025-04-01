@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: 8091
   servlet:
     context-path: /api
 
@@ -13,12 +13,13 @@ spring:
 
   data:
     mongodb:
-      host: localhost # Indirizzo del server MongoDB
-      port: 27017     # Porta del server MongoDB
-      database: extractfiledata  # Nome del database
-      username: root            # Nome utente
-      password: root            # Password
-      authentication-database: admin # Database di autenticazione (importante)
+      host: cluster0.gntk3.mongodb.net
+      port: 27017
+      uri: mongodb+srv://admin:admin@cluster0.5xindie.mongodb.net/
+      username: admin
+      password: admin
+      authentication-database: admin
+      database: extractfiledata
 
 spring-doc:
   swagger-ui:
@@ -26,4 +27,4 @@ spring-doc:
     path: /swagger-ui.html
 
 path:
-  base: ${PATH_BASE}
+  base: C:\workspace\dpac-offline\enviroment\ipac-offline\offline\volume\bucket

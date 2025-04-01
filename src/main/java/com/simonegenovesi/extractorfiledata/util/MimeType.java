@@ -37,6 +37,9 @@ public class MimeType {
             Map.entry("D0CF11", MimeTypeEnum.APPLICATION_MSWORD)
     );
 
+    private MimeType() {
+    }
+
     public static MimeTypeEnum deduciFormatoFile(File file) {
         try (FileInputStream fis = new FileInputStream(file)) {
             var bytes = new byte[512]; // Leggiamo fino a 256 byte

@@ -9,6 +9,9 @@ import java.util.List;
 @Slf4j
 public class Codici {
 
+    private Codici(){
+    }
+
     public static List<String> estraiCodici(String percorso) {
         var start = System.nanoTime();
         Path path = Paths.get(percorso);

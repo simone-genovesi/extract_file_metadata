@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/metadata")
 @RequiredArgsConstructor
@@ -14,7 +16,7 @@ public class MetadataController {
 
     private final MetadataService metadataService;
 
-    //http://localhost:8081/api/swagger-ui/index.html#/metadata-controller/extractMetadata
+    //http://localhost:8091/api/swagger-ui/index.html#/metadata-controller/extractMetadata
     // "\\CA01CN01\\LDIG002\\PK0000004\\contenuto"
     // "\\CA01CN01\\LDIG002\\PK0000028\\contenuto"
     @PostMapping("/")
