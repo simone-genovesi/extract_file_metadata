@@ -36,9 +36,6 @@
 		<modelmapper>3.2.2</modelmapper>
 		<thumbnailator>0.4.20</thumbnailator>
 		<imageio-tiff>3.12.0</imageio-tiff>
-		<swagger-annotations>2.2.29</swagger-annotations>
-		<jackson-databind-nullable>0.2.6</jackson-databind-nullable>
-		<jakarta.validation-api>3.1.1</jakarta.validation-api>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -75,22 +72,6 @@
 			<groupId>com.twelvemonkeys.imageio</groupId>
 			<artifactId>imageio-tiff</artifactId>
 			<version>${imageio-tiff}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>io.swagger.core.v3</groupId>
-			<artifactId>swagger-annotations</artifactId>
-			<version>${swagger-annotations}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.openapitools</groupId>
-			<artifactId>jackson-databind-nullable</artifactId>
-			<version>${jackson-databind-nullable}</version>
-		</dependency>
-		<dependency>
-			<groupId>jakarta.validation</groupId>
-			<artifactId>jakarta.validation-api</artifactId>
-			<version>${jakarta.validation-api}</version>
 		</dependency>
 
 		<!--ModelMapper-->
@@ -134,40 +115,6 @@
 						</exclude>
 					</excludes>
 				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.openapitools</groupId>
-				<artifactId>openapi-generator-maven-plugin</artifactId>
-				<version>7.12.0</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>generate</goal>
-						</goals>
-						<configuration>
-							<inputSpec>
-								${project.basedir}/src/main/resources/GeneraDTOControllers.yaml
-							</inputSpec>
-							<generatorName>spring</generatorName>
-							<apiPackage>com.simonegenovesi.extractorfiledata.api</apiPackage>
-							<modelPackage>com.simonegenovesi.extractorfiledata.model</modelPackage>
-							<configOptions>
-								<interfaceOnly>true</interfaceOnly>
-								<useSpringBoot3>true</useSpringBoot3>
-								<generatedConstructorWithRequiredArgs>false</generatedConstructorWithRequiredArgs>
-								<!--suppress UnresolvedMavenProperty -->
-								<additionalModelTypeAnnotations>
-									@lombok.NoArgsConstructor
-									@lombok.AllArgsConstructor
-									@lombok.Builder
-									@lombok.Getter
-									@lombok.Setter
-								</additionalModelTypeAnnotations>
-							</configOptions>
-							<output>${project.build.directory}/generated-sources</output>
-						</configuration>
-					</execution>
-				</executions>
 			</plugin>
 		</plugins>
 	</build>

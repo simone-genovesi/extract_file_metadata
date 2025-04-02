@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.*;
 
 import static com.simonegenovesi.extractorfiledata.util.MimeType.deduciFormatoFile;
 
@@ -146,12 +147,39 @@ public class Elementi {
 
     public static void doThumbnail(List<File> imageFiles) {
         long start = System.nanoTime();
+        //var threads = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
         log.info("Starting creating thumbnails...");
 
         // Carica i plugin una sola volta
         ImageIO.scanForPlugins();
 
-        imageFiles.parallelStream().forEach(Elementi::processImage);
+        ExecutorService executor = new ThreadPoolExecutor(
+                3, // core pool size
+                6, // max pool size
+                60L, // tempo massimo di inattività
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(5), // Limita la coda per evitare saturazione
+                new ThreadPoolExecutor.CallerRunsPolicy() // Evita RejectedExecutionException
+        );
+
+
+        var futures = imageFiles.stream()
+                .map(file -> executor.submit(() -> {
+                    processImage(file);
+                    return null; //return null perche deve restituire qualcosa comunque...
+                }))
+                .toList();
+
+        // Aspettando il completamento di tutte le task
+        for (var future: futures){
+            try{
+                future.get();
+            } catch (ExecutionException | InterruptedException e) {
+                log.error("Errore nell'elaborazione di un'immagine", e);
+            }
+        }
+
+        executor.shutdown();
 
         long end = System.nanoTime();
         log.info("Tempo medio per thumbnail: {} ms", ((double) (end - start) / 1_000_000) / imageFiles.size());
@@ -160,6 +188,7 @@ public class Elementi {
 
     private static void processImage(File imageFile) {
         try {
+            long start = System.nanoTime();
             // Carica l'immagine
             BufferedImage image = ImageIO.read(imageFile);
             if (image == null) {
@@ -188,10 +217,11 @@ public class Elementi {
                     .resolve(imageFile.getName().replaceFirst("\\.\\w+$", ".jpg")); //Forza .jpg
             Thumbnails.of(image)
                     .size(newWidth, newHeight)
-                    .outputQuality(0.9)
+                    .outputQuality(0.7)
                     .toFile(thumbnailPath.toFile());
 
-            log.info("Thumbnail created: {}", thumbnailPath);
+            long end = System.nanoTime();
+            log.info("Thumbnail created: {} in {} secondi", thumbnailPath, (double) (end - start) / 1_000_000);
         } catch (IOException e) {
             log.error("Errore nella creazione della thumbnail per {}", imageFile, e);
         }
