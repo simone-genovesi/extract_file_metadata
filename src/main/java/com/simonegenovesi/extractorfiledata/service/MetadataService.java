@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import static com.simonegenovesi.extractorfiledata.util.Codici.estraiCodici;
 import static com.simonegenovesi.extractorfiledata.util.Elementi.*;
-import static com.simonegenovesi.extractorfiledata.util.Thumbnail.doThumbnail;
 
 @Service
 @Slf4j
@@ -24,6 +23,7 @@ public class MetadataService {
 
     private final MetadatiRisorsaRepository metadatiRisorseRepository;
     private final MetricaRepository metricheRepository;
+    private final Thumbnail thumbnail;
     private final LogRepository logRepository;
 
     public void estraiMetadata(MetadataRequest request) {
@@ -51,7 +51,7 @@ public class MetadataService {
         if (!allFiles.isEmpty()) {
             log.info("Tempo medio di salvataggio: {} ms", ((double) (end - start) / 1_000_000) / allFiles.size());
             log.info("Tempo totale operazione: {} ms", (double) (end - start) / 1_000_000);
-            doThumbnail(listaTiffImages);
+            thumbnail.doThumbnail(listaTiffImages);
         }
 
     }
