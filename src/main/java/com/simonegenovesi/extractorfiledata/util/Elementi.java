@@ -3,6 +3,8 @@ package com.simonegenovesi.extractorfiledata.util;
 import com.simonegenovesi.extractorfiledata.entity.MetadatiRisorsa;
 import com.simonegenovesi.extractorfiledata.entity.Metrica;
 import com.simonegenovesi.extractorfiledata.util.dto.FileProcessati;
+import com.simonegenovesi.extractorfiledata.util.enumerated.MimeTypeEnum;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -18,9 +20,19 @@ import java.util.Map;
 import static com.simonegenovesi.extractorfiledata.util.MimeType.deduciFormatoFile;
 
 @Slf4j
+@UtilityClass
 public class Elementi {
 
-    private Elementi() {
+    public static boolean thumbnailsExist(String pathBase, String relativePath) {
+        Path rootDir = Paths.get(pathBase, relativePath);
+        try (var paths = Files.walk(rootDir)) {
+            return paths
+                    .filter(Files::isDirectory)
+                    .anyMatch(path -> path.getFileName().toString().equalsIgnoreCase("thumbnails"));
+        } catch (IOException e) {
+            log.error("Errore durante la scansione delle directory: {}", e.getMessage());
+            return false;
+        }
     }
 
     public static List<File> getAllFilesFromFolders(String pathBase, String folderPath) {

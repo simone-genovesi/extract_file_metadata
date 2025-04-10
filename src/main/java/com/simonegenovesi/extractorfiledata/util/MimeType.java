@@ -1,5 +1,7 @@
 package com.simonegenovesi.extractorfiledata.util;
 
+import com.simonegenovesi.extractorfiledata.util.enumerated.MimeTypeEnum;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -8,6 +10,7 @@ import java.io.IOException;
 import java.util.Map;
 
 @Slf4j
+@UtilityClass
 public class MimeType {
 
     private static final Map<String, MimeTypeEnum> MAGIC_NUMBERS = Map.ofEntries(
@@ -37,11 +40,8 @@ public class MimeType {
             Map.entry("D0CF11", MimeTypeEnum.APPLICATION_MSWORD)
     );
 
-    private MimeType() {
-    }
-
     public static MimeTypeEnum deduciFormatoFile(File file) {
-        try (FileInputStream fis = new FileInputStream(file)) {
+        try (var fis = new FileInputStream(file)) {
             var bytes = new byte[512]; // Leggiamo fino a 256 byte
             var bytesRead = fis.read(bytes);
 
@@ -53,7 +53,7 @@ public class MimeType {
             var hexSignature = bytesToHex(bytes).toUpperCase();
 
             // Controlliamo magic numbers noti
-            for (Map.Entry<String, MimeTypeEnum> entry: MAGIC_NUMBERS.entrySet()) {
+            for (var entry: MAGIC_NUMBERS.entrySet()) {
                 if (hexSignature.startsWith(entry.getKey())) {
                     return getMimeTypeEnum(entry, bytes, bytesRead);
                 }
@@ -82,8 +82,8 @@ public class MimeType {
     }
 
     private static String bytesToHex(byte[] bytes) {
-        StringBuilder hex = new StringBuilder();
-        for (byte b : bytes) {
+        var hex = new StringBuilder();
+        for (var b : bytes) {
             hex.append(String.format("%02X", b));
         }
         return hex.toString();

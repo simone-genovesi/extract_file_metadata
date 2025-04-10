@@ -1,4 +1,4 @@
-package com.simonegenovesi.extractorfiledata.util;
+package com.simonegenovesi.extractorfiledata.util.enumerated;
 
 import lombok.Getter;
 
@@ -53,7 +53,7 @@ public enum MimeTypeEnum {
     }
 
     public static MimeTypeEnum fromString(String mimeType) {
-        for (MimeTypeEnum type : values()) {
+        for (var type : values()) {
             if (type.mimeType.equalsIgnoreCase(mimeType)) {
                 return type;
             }

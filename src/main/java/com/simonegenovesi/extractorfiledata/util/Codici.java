@@ -1,21 +1,19 @@
 package com.simonegenovesi.extractorfiledata.util;
 
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
 @Slf4j
+@UtilityClass
 public class Codici {
-
-    private Codici(){
-    }
 
     public static List<String> estraiCodici(String percorso) {
         var start = System.nanoTime();
-        Path path = Paths.get(percorso);
-        int depth = path.getNameCount();
+        var path = Paths.get(percorso);
+        var depth = path.getNameCount();
 
         var end = System.nanoTime();
         log.info("Tempo di estrazione dei codici cartelle: {} ms", (end - start) / 1_000_000);

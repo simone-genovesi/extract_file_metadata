@@ -1,6 +1,8 @@
 package com.simonegenovesi.extractorfiledata.service;
 
 import com.simonegenovesi.extractorfiledata.entity.Log;
+import com.simonegenovesi.extractorfiledata.exceptions.InvalidPathException;
+import com.simonegenovesi.extractorfiledata.exceptions.NoFilesFoundException;
 import com.simonegenovesi.extractorfiledata.payload.request.MetadataRequest;
 import com.simonegenovesi.extractorfiledata.repository.LogRepository;
 import com.simonegenovesi.extractorfiledata.repository.MetadatiRisorsaRepository;
@@ -30,12 +32,24 @@ public class MetadataService {
         var start = System.nanoTime();
 
         var relativePath = request.getPath();
+        if (relativePath == null || relativePath.trim().isEmpty()) {
+            var error = "Path relativo nullo o vuoto: " + relativePath + ".";
+            log.error(error);
+            logRepository.save(Log.builder().messagio(error).build());
+            throw new InvalidPathException(error);
+        }
 
         if(!isWindows()){
             relativePath = normalizePath(relativePath); // Normalize the path
         }
 
         var allFiles = getAllFilesFromFolders(pathBase, relativePath);
+
+        if (allFiles == null || allFiles.isEmpty()) {
+            var warn = "Nessun file trovato per il path base '" + pathBase + "' " +  "e relativo '" + relativePath + "'.";
+            log.warn(warn);
+            throw new NoFilesFoundException(warn);
+        }
 
         var codici = estraiCodici(relativePath);
         var fileProcessati = processaFile(allFiles, codici);
@@ -51,7 +65,9 @@ public class MetadataService {
         if (!allFiles.isEmpty()) {
             log.info("Tempo medio di salvataggio: {} ms", ((double) (end - start) / 1_000_000) / allFiles.size());
             log.info("Tempo totale operazione: {} ms", (double) (end - start) / 1_000_000);
-            thumbnail.doThumbnail(listaTiffImages);
+            if(listaTiffImages != null && !listaTiffImages.isEmpty()) {
+                thumbnail.doThumbnail(listaTiffImages);
+            }
         }
 
     }
