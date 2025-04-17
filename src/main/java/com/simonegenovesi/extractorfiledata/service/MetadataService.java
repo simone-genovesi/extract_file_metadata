@@ -1,6 +1,7 @@
 package com.simonegenovesi.extractorfiledata.service;
 
 import com.simonegenovesi.extractorfiledata.entity.Log;
+import com.simonegenovesi.extractorfiledata.exceptions.DirectoryAlreadyProcessedException;
 import com.simonegenovesi.extractorfiledata.exceptions.InvalidPathException;
 import com.simonegenovesi.extractorfiledata.exceptions.NoFilesFoundException;
 import com.simonegenovesi.extractorfiledata.payload.request.MetadataRequest;
@@ -43,6 +44,15 @@ public class MetadataService {
             relativePath = normalizePath(relativePath); // Normalize the path
         }
 
+        var codici = estraiCodici(relativePath);
+
+        if(existsMetrica(codici.get(0), codici.get(1), codici.get(2))) {
+            var error = "I file in questa folder sono stati gia analizzati e processati.";
+            log.error(error);
+            logRepository.save(Log.builder().messagio(error).build());
+            throw new DirectoryAlreadyProcessedException(error);
+        }
+
         var allFiles = getAllFilesFromFolders(pathBase, relativePath);
 
         if (allFiles == null || allFiles.isEmpty()) {
@@ -51,7 +61,6 @@ public class MetadataService {
             throw new NoFilesFoundException(warn);
         }
 
-        var codici = estraiCodici(relativePath);
         var fileProcessati = processaFile(allFiles, codici);
         var metadati = fileProcessati.metadati();
         var metriche = fileProcessati.metrica();
@@ -86,6 +95,14 @@ public class MetadataService {
 
     private String normalizePath(String input) {
         return input.replace("\\", "/");
+    }
+
+    public boolean existsMetrica(String codiceCantiere, String codiceLotto, String codicePacchetto) {
+        return metricheRepository.existsByCodiceCantiereAndCodiceLottoAndCodicePacchetto(
+                codiceCantiere,
+                codiceLotto,
+                codicePacchetto
+        );
     }
 
 }

@@ -23,18 +23,6 @@ import static com.simonegenovesi.extractorfiledata.util.MimeType.deduciFormatoFi
 @UtilityClass
 public class Elementi {
 
-    public static boolean thumbnailsExist(String pathBase, String relativePath) {
-        Path rootDir = Paths.get(pathBase, relativePath);
-        try (var paths = Files.walk(rootDir)) {
-            return paths
-                    .filter(Files::isDirectory)
-                    .anyMatch(path -> path.getFileName().toString().equalsIgnoreCase("thumbnails"));
-        } catch (IOException e) {
-            log.error("Errore durante la scansione delle directory: {}", e.getMessage());
-            return false;
-        }
-    }
-
     public static List<File> getAllFilesFromFolders(String pathBase, String folderPath) {
         var start = System.nanoTime();
         List<File> fileList = new ArrayList<>();
